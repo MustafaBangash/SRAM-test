@@ -140,49 +140,40 @@ module tt_um_example (
         
     `else
         // =======================================================================
-        // SYNTHESIS: Dummy placeholder cells (REPLACE THESE IN MAGIC!)
+        // SYNTHESIS: UNIQUE PLACEHOLDER CELLS (DELETE THESE IN MAGIC!)
         // =======================================================================
-        // These buffer chains reserve physical space and organize connections
-        // for the 6T SRAM cells you'll add manually in Magic layout.
+        // Using DECAP_8 cells as unique, easy-to-find placeholders for the
+        // 6T SRAM cells you'll add manually in Magic layout.
+        //
+        // WHY DECAP_8?
+        // - Unique size that synthesizer won't add elsewhere
+        // - Easy to find: select cell *decap_8* in Magic
+        // - Exactly 8 instances (4 bits × 2 per bit)
+        // - Small footprint
         //
         // Integration steps:
-        // 1. Generate GDS - these will appear as buffer chains
-        // 2. In Magic, identify and DELETE these dummy chains
-        // 3. Place 6T SRAM cells in the same location
-        // 4. Connect: WL, BL[i], BLB[i] to each cell
-        // 5. Add precharge and sense amps
-        
-        wire [3:0] dummy_bl_load;
-        wire [3:0] dummy_blb_load;
+        // 1. Generate GDS - you'll see exactly 8× decap_8 cells
+        // 2. In Magic: select cell *decap_8*
+        // 3. DELETE all 8 instances
+        // 4. Place 4× 6T SRAM cells in that space
+        // 5. Connect: WL, BL[i], BLB[i] to each cell
+        // 6. Add precharge and sense amps
         
         genvar j;
         generate
-            for (j = 0; j < 4; j = j + 1) begin : dummy_mem_cells
-                // Buffer chain on BL side (simulates SRAM cell load)
+            for (j = 0; j < 4; j = j + 1) begin : SRAM_CELL_PLACEHOLDER
+                // BL path placeholder
                 (* keep = "true" *)
-                wire bl_in, bl_buf1, bl_buf2, bl_buf3;
+                sky130_fd_sc_hd__decap_8 BL_MARKER ();
                 
-                assign bl_in = bitline[j] & wordline;  // Input from write driver
-                assign bl_buf1 = bl_in;
-                assign bl_buf2 = bl_buf1;
-                assign bl_buf3 = bl_buf2;
-                assign dummy_bl_load[j] = bl_buf3;     // Output to sense path
-                
-                // Buffer chain on BLB side
+                // BLB path placeholder  
                 (* keep = "true" *)
-                wire blb_in, blb_buf1, blb_buf2, blb_buf3;
-                
-                assign blb_in = bitline_bar[j] & wordline;
-                assign blb_buf1 = blb_in;
-                assign blb_buf2 = blb_buf1;
-                assign blb_buf3 = blb_buf2;
-                assign dummy_blb_load[j] = blb_buf3;
+                sky130_fd_sc_hd__decap_8 BLB_MARKER ();
             end
         endgenerate
         
-        // Combine dummy loads to create sense data
-        // In real chip, this comes from sense amplifiers
-        wire [3:0] sense_data = dummy_bl_load | dummy_blb_load;
+        // Dummy connections to prevent optimization
+        wire [3:0] sense_data = {4{wordline & |bitline & |bitline_bar}};
         
     `endif
     
